@@ -2,7 +2,7 @@ import 'package:bloc_demo/bloc/post_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'bloc/post.dart';
+import 'list_post_item.dart';
 // ignore_for_file: prefer_const_constructors
 
 class HomePage extends StatefulWidget {
@@ -37,7 +37,6 @@ class _HomeViewState extends State<HomeView> {
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
-
   }
 
   @override
@@ -95,24 +94,6 @@ class _HomeViewState extends State<HomeView> {
             }
           },
         ));
-  }
-}
-
-class ListPostItem extends StatelessWidget {
-  const ListPostItem({super.key, required this.post});
-
-  final Post post;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      child: ListTile(
-        leading: Text("${post.id}"),
-        title: Text(post.title),
-        subtitle: Text(post.body),
-        isThreeLine: true,
-      ),
-    );
   }
 }
 

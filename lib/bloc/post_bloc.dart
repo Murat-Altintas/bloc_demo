@@ -7,15 +7,14 @@ import 'package:bloc_demo/bloc/post.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'package:stream_transform/stream_transform.dart';
+import '../exceptions.dart';
 
 part './post_event.dart';
-
 part './post_state.dart';
 
 typedef HttpClient = http.Client;
 
 const _postLimit = 30;
-
 const _postDuration = Duration(milliseconds: 100);
 
 EventTransformer<T> postDroppable<T>(Duration duration) {
@@ -59,6 +58,7 @@ class PostBloc extends Bloc<PostEvent, PostState> {
             );
     } catch (_) {
       emit(state.copyWith(status: PostStatus.failure));
+      PostException(error: _.toString());
     }
   }
 
@@ -76,10 +76,4 @@ class PostBloc extends Bloc<PostEvent, PostState> {
     }
     throw PostException(error: response.body);
   }
-}
-
-class PostException implements Exception {
-  final String error;
-
-  PostException({required this.error});
 }
