@@ -14,7 +14,7 @@ part './post_state.dart';
 
 typedef HttpClient = http.Client;
 
-const _postLimit = 20;
+const _postLimit = 30;
 
 const _postDuration = Duration(milliseconds: 100);
 
@@ -45,13 +45,18 @@ class PostBloc extends Bloc<PostEvent, PostState> {
           state.copyWith(status: PostStatus.success, posts: posts, hasReachedMax: false),
         );
       }
-      final posts = await _fetchPosts(state.posts.length);
-      posts.isEmpty
-          ? emit(state.copyWith(hasReachedMax: true))
-          : emit(state.copyWith(
-              status: PostStatus.success,
-              posts: List.of(state.posts)..addAll(posts),
-            ));
+      final newPosts = await _fetchPosts(state.posts.length);
+      newPosts.isEmpty
+          ? emit(
+              state.copyWith(hasReachedMax: true),
+            )
+          : emit(
+              state.copyWith(
+                status: PostStatus.success,
+                posts: List.of(state.posts)..addAll(newPosts),
+                hasReachedMax: false,
+              ),
+            );
     } catch (_) {
       emit(state.copyWith(status: PostStatus.failure));
     }

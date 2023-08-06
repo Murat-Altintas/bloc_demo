@@ -17,9 +17,9 @@ class PostState extends Equatable {
   List<Object> get props => [posts, hasReachedMax, status];
 
   PostState copyWith({
-    final List<Post>? posts,
-    final bool? hasReachedMax,
-    final PostStatus? status,
+     List<Post>? posts,
+     bool? hasReachedMax,
+     PostStatus? status,
   }) {
     return PostState(
       posts: posts ?? this.posts,
