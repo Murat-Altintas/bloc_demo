@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:bloc_demo/bloc/post.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
+import 'package:stream_transform/stream_transform.dart';
 
 part './post_event.dart';
 
@@ -14,6 +16,14 @@ typedef HttpClient = http.Client;
 
 const _postLimit = 20;
 
+const _postDuration = Duration(milliseconds: 100);
+
+EventTransformer<T> postDroppable<T>(Duration duration) {
+  return (events, mapper) {
+    return droppable<T>().call(events.throttle(duration), mapper);
+  };
+}
+
 class PostBloc extends Bloc<PostEvent, PostState> {
   final HttpClient _client;
 
@@ -22,22 +32,39 @@ class PostBloc extends Bloc<PostEvent, PostState> {
         super(
           const PostState(),
         ) {
-    on<PostFetched>(_onPostFetched);
+    on<PostFetched>(_onPostFetched, transformer: postDroppable(_postDuration));
   }
 
   Future<void> _onPostFetched(PostFetched event, Emitter<PostState> emit) async {
     if (state.hasReachedMax) return;
-    if (state.status == PostStatus.initial) {
-      final posts = await _fetchPosts();
-      return emit(
-        state.copyWith(status: PostStatus.success, posts: posts, hasReachedMax: false),
-      );
+
+    try {
+      if (state.status == PostStatus.initial) {
+        final posts = await _fetchPosts();
+        return emit(
+          state.copyWith(status: PostStatus.success, posts: posts, hasReachedMax: false),
+        );
+      }
+      final posts = await _fetchPosts(state.posts.length);
+      posts.isEmpty
+          ? emit(state.copyWith(hasReachedMax: true))
+          : emit(state.copyWith(
+              status: PostStatus.success,
+              posts: List.of(state.posts)..addAll(posts),
+            ));
+    } catch (_) {
+      emit(state.copyWith(status: PostStatus.failure));
     }
   }
 
   Future<List<Post>> _fetchPosts([int startIndex = 0]) async {
     final response = await _client.get(
-      Uri.https('jsonplaceholder.typicode.com', '/posts', {'_start': '$startIndex', '_limit': '$_postLimit'}),
+      Uri.https(
+        //https://jsonplaceholder.typicode.com/posts?start=2&_limit=10
+        'jsonplaceholder.typicode.com',
+        '/posts',
+        {'_start': '$startIndex', '_limit': '$_postLimit'},
+      ),
     );
     if (response.statusCode == 200) {
       return (json.decode(response.body) as List<dynamic>).map((dynamic post) => Post.fromJson(JsonMap.from(post))).cast<Post>().toList();
